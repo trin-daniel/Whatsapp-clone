@@ -150,28 +150,62 @@ class WhatsappController {
     this.element.main.css({
       display: 'flex',
     });
+    this.element.panelMessagesContainer.innerHTML = '';
+
     Message
     .getRef(this._contactActive.chatId)
     .orderBy('timeStamp')
     .onSnapshot(docs =>{
-      this.element.panelMessagesContainer.innerHTML = '';
-      docs.forEach(doc =>{
+
+
+        let scrollTop = this.element.panelMessagesContainer.scrollTop;
+        let scrollTopMax = this.element.panelMessagesContainer.scrollHeight - this.element.panelMessagesContainer.offsetHeight;
+        let autoScroll = scrollTop >= scrollTopMax;      
+
+        docs.forEach(doc =>{
+
         let data = doc.data();
         data.id = doc.id;
       
+        let message = new Message();
+        message.fromJSON(data);
+
+        let received =  data.from === this._user.email;
         if(!this.element.panelMessagesContainer.querySelector('#_' + data.id)){
-          let message = new Message();
-          message.fromJSON(data);
-          let received =  data.from === this._user.email;
+
+          if(!received){
+            doc.ref.set({
+              status: 'read'
+            }, {merge: true})
+          }
+
           let view = message.getviewElement(received);
           this.element.panelMessagesContainer.appendChild(view);
+        }else if(received){
+          let msgEl = this.element.panelMessagesContainer.querySelector('#_' + data.id);
+          msgEl.querySelector('.message-status').innerHTML = message.getStatusViewElement().outerHTML;
         }
-
+        
       })
+        if(autoScroll){
+          this.element.panelMessagesContainer.scrollTop = 
+          this.element.panelMessagesContainer.scrollHeight - this.element.panelMessagesContainer.offsetHeight;
+        }else{
+          this.element.panelMessagesContainer.scrollTop = scrollTop;
+        }
     });
   }
 
   initializeEvents() {
+    this.element.inputSearchContacts.on('keyup', event =>{
+      if(this.element.inputSearchContacts.value.length > 0){
+        this.element.inputSearchContactsPlaceholder.hide();
+      }else{
+        this.element.inputSearchContactsPlaceholder.show();
+      }
+      this._user.getContacts(this.element.inputSearchContacts.value)
+    })
+
     this.element.myPhoto.on('click', (event) => {
       this.closeAllPanelsInLeft();
       this.element.panelEditProfile.show();
