@@ -1,5 +1,4 @@
 import ClassEvent from "../utils/ClassEvent";
-import User from "./User";
 
 class Model extends ClassEvent{
   constructor(){

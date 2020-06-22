@@ -1,10 +1,11 @@
-import CameraController from './CameraController';
-import MicrophoneController from './MicrophoneController';
-import DocumentPreviewController from './DocumentPreviewController';
+import Chat from '../model/Chat';
+import Message from '../model/Message';
+import User from '../model/User';
 import Firebase from '../utils/Firebase';
 import Format from '../utils/Format';
-import User from '../model/User';
-import Chat from '../model/Chat';
+import CameraController from './CameraController';
+import DocumentPreviewController from './DocumentPreviewController';
+import MicrophoneController from './MicrophoneController';
 
 class WhatsappController {
   constructor() {
@@ -121,23 +122,53 @@ class WhatsappController {
           img.src = contact.photo;
           img.show();
         }
-        div.on('click', (event) => {
-          this.element.activeName.innerHTML = contact.name;
-          this.element.activeStatus.innerHTML = contact.status;
-          if (contact.photo) {
-            let img = this.element.activePhoto;
-            img.src = contact.photo;
-            img.show();
-          }
-          this.element.home.hide();
-          this.element.main.css({
-            display: 'flex',
-          });
-        });
+        div.on('click', (event) => {this.setActiveChat(contact)});
+
         this.element.contactsMessagesList.appendChild(div);
       });
     });
     this._user.getContacts();
+  }
+
+  setActiveChat(contact){
+  
+    if(this._contactActive){
+      Message.getRef(this._contactActive.chatId).onSnapshot(()=>{});
+    }
+    
+    this._contactActive = contact;
+    this.element.activeName.innerHTML = contact.name;
+    this.element.activeStatus.innerHTML = contact.status;
+
+    if (contact.photo) {
+      let img = this.element.activePhoto;
+      img.src = contact.photo;
+      img.show();
+    }
+
+    this.element.home.hide();
+    this.element.main.css({
+      display: 'flex',
+    });
+    Message
+    .getRef(this._contactActive.chatId)
+    .orderBy('timeStamp')
+    .onSnapshot(docs =>{
+      this.element.panelMessagesContainer.innerHTML = '';
+      docs.forEach(doc =>{
+        let data = doc.data();
+        data.id = doc.id;
+      
+        if(!this.element.panelMessagesContainer.querySelector('#_' + data.id)){
+          let message = new Message();
+          message.fromJSON(data);
+          let received =  data.from === this._user.email;
+          let view = message.getviewElement(received);
+          this.element.panelMessagesContainer.appendChild(view);
+        }
+
+      })
+    });
   }
 
   initializeEvents() {
@@ -261,7 +292,6 @@ class WhatsappController {
       this.element.btnReshootPanelCamera.show();
       this.element.containerTakePicture.hide();
       this.element.containerSendPicture.show();
-      // console.log('take picture');
     });
 
     this.element.btnSendPicture.on('click', (event) => {
@@ -396,7 +426,15 @@ class WhatsappController {
     });
 
     this.element.btnSend.on('click', (event) => {
-      console.log(this.element.inputText.innerHTML);
+      Message.send(
+        this._contactActive.chatId,
+        this.element.inputText.innerHTML,
+        this._user.email,
+        'text',
+      );
+      
+      this.element.inputText.innerHTML ='';
+      this.element.panelEmojis.removeClass('open');
     });
 
     this.element.btnEmojis.on('click', (event) => {
@@ -405,7 +443,6 @@ class WhatsappController {
 
     this.element.panelEmojis.querySelectorAll('.emojik').forEach((emoji) => {
       emoji.on('click', (event) => {
-        console.log(emoji.dataset.unicode);
         let images = this.element.imgEmojiDefault.cloneNode();
         images.style.cssText = emoji.style.cssText;
         images.dataset.unicode = emoji.dataset.unicode;
