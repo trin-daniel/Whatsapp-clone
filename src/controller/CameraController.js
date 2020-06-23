@@ -13,7 +13,7 @@ class CameraController{
     })
   }
   stopCamera(){
-    this._stream.getTracks().forEach(track =>{
+    this._stream.getVideoTracks().forEach(track =>{
       track.stop();
     })
   }

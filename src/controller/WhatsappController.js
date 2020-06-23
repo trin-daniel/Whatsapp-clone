@@ -357,8 +357,9 @@ class WhatsappController {
           .then(file =>{
             Message.sendImage(this._contactActive.chatId, this._user.email, file);
             this.element.btnSendPicture.disabled = false;
-            this.element.closeAllMainPanel()
+            this.closeAllMainPanel()
             this._Camera.stopCamera();
+            this.element.pictureCamera.hide()
             this.element.btnReshootPanelCamera.hide();
             this.element.videoCamera.show();
             this.element.containerSendPicture.hide();
@@ -410,7 +411,6 @@ class WhatsappController {
             });
           })
           .catch((err) => {
-            // console.log(file.type)
             switch (file.type) {
               case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
               case 'application/msword':
@@ -455,7 +455,7 @@ class WhatsappController {
     this.element.btnCloseModalContacts.on('click', (event) => {
       this.element.modalContacts.hide();
     });
-    /// Eventos de Microfone.
+    
     this.element.btnSendMicrophone.on('click', (event) => {
       this.element.recordMicrophone.show();
       this.element.btnSendMicrophone.hide();
@@ -522,7 +522,6 @@ class WhatsappController {
         images.alt = emoji.dataset.unicode;
 
         emoji.classList.forEach((name) => {
-          // pode causar erros, se ocorrer, substitua-o por .classList.add(name);
           images.addClass(name);
         });
         let cursor = window.getSelection();
