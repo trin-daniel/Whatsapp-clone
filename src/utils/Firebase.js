@@ -8,7 +8,7 @@ class FireBase {
       authDomain: "whatsapp-clone-938a2.firebaseapp.com",
       databaseURL: "https://whatsapp-clone-938a2.firebaseio.com",
       projectId: "whatsapp-clone-938a2",
-      storageBucket: "whatsapp-clone-938a2.appspot.com",
+      storageBucket: "gs://whatsapp-clone-938a2.appspot.com",
       messagingSenderId: "273935738840",
       appId: "1:273935738840:web:07ce62df35a697d8fff4ad",
       measurementId: "G-058J4HWPH3"

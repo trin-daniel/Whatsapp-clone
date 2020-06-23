@@ -16,23 +16,23 @@ class Message extends Model{
     return this._data.id;
   }
 
-  set content(value){return this._data.content = value;}
+  set content(value){ return this._data.content = value;}
 
   get content(){return this._data.content;}
 
-  set type(value){return this._data.type = value;}
+  set type(value){ this._data.type = value;}
 
   get type(){return this._data.type;}
 
-  set timeStamp(value){return this._data.timeStamp = value;}
+  set timeStamp(value){ this._data.timeStamp = value;}
 
   get timeStamp(){ return this._data.timeStamp;}
 
-  set status(value){ return this._data.status = value}
+  set status(value){ this._data.status = value}
 
   get status(){ return this._data.status}
 
-  getviewElement(received = true){
+  getviewElement(isMe = true){
     let div = document.createElement('div');
 
     div.className = 'message';
@@ -125,7 +125,7 @@ class Message extends Model{
           <div class="_3_7SH _3qMSo" id="_${this.id}">
               <div class="KYpDv">
                   <div>
-                      <div class="_3v3PK" style="width: 330px; height: 330px;">
+                      <div class="_3v3PK" style="width: 330px; height: auto;">
                           <div class="_34Olu">
                               <div class="_2BzIU">
                                   <div class="_2X3l6">
@@ -142,13 +142,8 @@ class Message extends Model{
                                   </div>
                               </div>
                           </div>
-                          <img src="#" class="_1JVSX message-photo" style="width: 100%; display:none">
+                          <img src="${this.content}" class="_1JVSX message-photo" style="width: 100%; display:none">
                           <div class="_1i3Za"></div>
-                      </div>
-                      <div class="message-container-legend">
-                          <div class="_3zb-j ZhF0n">
-                              <span dir="ltr" class="selectable-text invisible-space copyable-text message-text">Texto da foto</span>
-                          </div>
                       </div>
                       <div class="_2TvOE">
                           <div class="_1DZAH text-white" role="button">
@@ -169,6 +164,11 @@ class Message extends Model{
           </div>
         
         `;
+        div.querySelector('.message-photo').on('load', ()=>{
+            div.querySelector('.message-photo').show()
+            div.querySelector('._34Olu').hide();
+            console.log('load ok')
+        });
         break;
       case 'audio':
         div.innerHTML =`
@@ -269,7 +269,7 @@ class Message extends Model{
         `;
     }
     let className = 'message-in';
-    if(received){
+    if(isMe){
         className = 'message-out';
         div.querySelector('.message-time').parentElement.appendChild(this.getStatusViewElement())
     }
@@ -277,7 +277,7 @@ class Message extends Model{
     return div;
   }
 
-  static send(chatId, content, from, type){
+  static send(chatId, from, content, type){
     return new Promise((resolve, reject)=>{
      Message.getRef(chatId).add({
         content,
@@ -293,8 +293,31 @@ class Message extends Model{
              merge: true,
             }).then(()=> resolve())
         })
+        .catch(err =>{
+            reject(err);
+        })
     })
   }
+
+  static sendImage(chatId, from, file){
+      return new Promise((resolve, reject)=>{
+        const uploadFile = FireBase.disk().ref(from).child(`${Date.now()}-${file.name}`).put(file);
+        uploadFile.on('state_changed', ()=>{
+            
+        }, err=>{
+            console.error(err);
+        },()=>{
+            uploadFile.snapshot.ref.getDownloadURL()
+            .then(response =>{
+                Message.send(chatId, from, response, 'image')
+                .then(()=>{resolve()})
+                .catch(err =>{
+                    reject(err);
+                })
+            });
+        })
+      })
+    }
 
   static getRef(chatId){
       return FireBase

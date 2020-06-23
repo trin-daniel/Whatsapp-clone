@@ -297,9 +297,8 @@ class WhatsappController {
     });
 
     this.element.inputPhoto.on('change', (event) => {
-      console.log(this.element.inputPhoto.files);
       [...this.element.inputPhoto.files].forEach((file) => {
-        console.log(file);
+        Message.sendImage(this._contactActive.chatId, this._user.email, file);
       });
     });
 
@@ -329,7 +328,47 @@ class WhatsappController {
     });
 
     this.element.btnSendPicture.on('click', (event) => {
-      console.log(this.element.pictureCamera.src);
+      this.element.btnSendPicture.disabled = true;
+      const regex = /^data:(.+);base64,(.*)$/;
+      const result = this.element.pictureCamera.src.match(regex);
+      const mimetype = result[1];
+      const extension = mimetype.split('/')[1];
+      const filename = `camera-${Date.now()}.${extension}`;
+
+      const picture = new Image();
+      picture.src = this.element.pictureCamera.src;
+      picture.onload = () =>{
+        const canvas =  document.createElement('canvas');
+        const contextCanvas = canvas.getContext('2d');  
+        canvas.width = picture.width;
+        canvas.height = picture.height;
+
+        contextCanvas.translate(picture.width, 0);
+        contextCanvas.scale(-1, 1);
+
+        contextCanvas.drawImage(picture, 0, 0, canvas.width, canvas.height);
+        fetch(canvas.toDataURL(mimetype))
+          .then(response =>{
+            return response.arrayBuffer()
+          })
+          .then(buffer =>{
+            return new File([buffer], filename, {type: mimetype})
+          })
+          .then(file =>{
+            Message.sendImage(this._contactActive.chatId, this._user.email, file);
+            this.element.btnSendPicture.disabled = false;
+            this.element.closeAllMainPanel()
+            this._Camera.stopCamera();
+            this.element.btnReshootPanelCamera.hide();
+            this.element.videoCamera.show();
+            this.element.containerSendPicture.hide();
+            this.element.containerTakePicture.show();
+            this.element.panelMessagesContainer.show();
+          })
+      }
+
+
+
     });
 
     this.element.btnReshootPanelCamera.on('click', (event) => {
@@ -462,8 +501,8 @@ class WhatsappController {
     this.element.btnSend.on('click', (event) => {
       Message.send(
         this._contactActive.chatId,
-        this.element.inputText.innerHTML,
         this._user.email,
+        this.element.inputText.innerHTML,
         'text',
       );
       
