@@ -1,6 +1,7 @@
 import Chat from '../model/Chat';
 import Message from '../model/Message';
 import User from '../model/User';
+import Base64 from '../utils/Base64';
 import Firebase from '../utils/Firebase';
 import Format from '../utils/Format';
 import CameraController from './CameraController';
@@ -159,7 +160,9 @@ class WhatsappController {
 
 
         let scrollTop = this.element.panelMessagesContainer.scrollTop;
-        let scrollTopMax = this.element.panelMessagesContainer.scrollHeight - this.element.panelMessagesContainer.offsetHeight;
+        let scrollTopMax =
+          this.element.panelMessagesContainer.scrollHeight -
+          this.element.panelMessagesContainer.offsetHeight;
         let autoScroll = scrollTop >= scrollTopMax;      
 
         docs.forEach(doc =>{
@@ -170,22 +173,31 @@ class WhatsappController {
         let message = new Message();
         message.fromJSON(data);
 
-        let received =  data.from === this._user.email;
+        let isMe =  data.from === this._user.email;
+        let view = message.getviewElement(isMe);
         if(!this.element.panelMessagesContainer.querySelector('#_' + data.id)){
 
-          if(!received){
+          if(!isMe){
             doc.ref.set({
               status: 'read'
             }, {merge: true})
           }
-
-          let view = message.getviewElement(received);
           this.element.panelMessagesContainer.appendChild(view);
-        }else if(received){
-          let msgEl = this.element.panelMessagesContainer.querySelector('#_' + data.id);
-          msgEl.querySelector('.message-status').innerHTML = message.getStatusViewElement().outerHTML;
-        }
+        }else{
+          this.element.panelMessagesContainer.querySelector('#_' + data.id).innerHTML = view.innerHTML;
+        } 
         
+        if (
+          this.element.panelMessagesContainer.querySelector("#_" + data.id) &&
+          isMe
+        ) {
+          let messageEl = this.element.panelMessagesContainer.querySelector(
+            "#_" + data.id
+          );
+          messageEl.querySelector(
+            ".message-status"
+          ).innerHTML = message.getStatusViewElement().outerHTML;
+        }
       })
         if(autoScroll){
           this.element.panelMessagesContainer.scrollTop = 
@@ -298,7 +310,7 @@ class WhatsappController {
 
     this.element.inputPhoto.on('change', (event) => {
       [...this.element.inputPhoto.files].forEach((file) => {
-        Message.sendImage(this._contactActive.chatId, this._user.email, file);
+        Message.sendImage(this._contactActive.chatId, this._user.email, file, 'image');
       });
     });
 
@@ -439,8 +451,28 @@ class WhatsappController {
       }
     });
 
-    this.element.btnSendDocument.on('click', (event) => {
-      console.log('send-document');
+    this.element.btnSendDocument.on('click', () => {
+      const file = this.element.inputDocument.files[0];
+      const preview = this.element.imgPanelDocumentPreview.src
+      if(file.type === 'application/pdf'){
+        Base64.toFile(preview)
+        .then((filePreview) => {
+          Message.sendDocumentPreview(
+            this._contactActive.chatId,
+            this._user.email,
+            file,
+            filePreview,
+            this.element.infoPanelDocumentPreview.innerHTML,
+          );
+        });
+      }else{
+        Message.sendDocumentPreview(
+          this._contactActive.chatId,
+          this._user.email,
+          file,
+        );
+      }
+      this.element.btnClosePanelDocumentPreview.click();
     });
 
     this.element.btnClosePanelDocumentPreview.on('click', (event) => {
