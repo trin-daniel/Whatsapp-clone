@@ -66,8 +66,10 @@ class WhatsappController {
     this._user.on('contactschange', (docs) => {
       this.element.contactsMessagesList.innerHTML = '';
       docs.forEach((doc) => {
+        console.log(doc)
         let div = document.createElement('div');
         let contact = doc.data();
+        console.log(contact.lastMessageTime)
         div.className = 'contact-item';
         div.innerHTML = `
         <div class="dIyEr">
@@ -91,7 +93,7 @@ class WhatsappController {
                     <span dir="auto" title="${contact.name}" class="_1wjpf">${contact.name}</span>
                 </div>
                 <div class="_3Bxar">
-                    <span class="_3T2VG">${contact.lastMessageTime}</span>
+                    <span class="_3T2VG">${!contact.lastMessageTime ? '12:00' : Format.FormatHours(contact.lastMessageTime)}</span>
                 </div>
             </div>
             <div class="_1AwDx">
@@ -106,7 +108,7 @@ class WhatsappController {
                             </svg>
                         </span>
                     </div>
-                    <span dir="ltr" class="_1wjpf _3NFp9">${contact.lastMessage}</span>
+                    <span dir="ltr" class="_1wjpf _3NFp9">${!contact.lastMessage? 'Ultima mensagem' : contact.lastMessage}</span>
                     <div class="_3Bxar">
                       <span>
                         <div class="_15G96">

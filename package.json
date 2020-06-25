@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "firebase": "^7.15.1",
+    "firebase-functions": "^3.7.0",
     "pdfjs-dist": "^2.0.489"
   }
 }

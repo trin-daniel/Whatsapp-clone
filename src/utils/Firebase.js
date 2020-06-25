@@ -20,7 +20,7 @@ class FireBase {
   // Initialize Firebase
     if(!window._initializedFirebase){
       firebase.initializeApp(this._config);
-      firebase.analytics();
+      // firebase.analytics();
       firebase.firestore().settings({});
       window._initializedFirebase = true;
     }

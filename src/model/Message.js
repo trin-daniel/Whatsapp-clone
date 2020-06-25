@@ -346,7 +346,7 @@ class Message extends Model {
           </div>
         `;
         if (this.photo) {
-          let img = div.querySelector(".message-photo");
+          const img = div.querySelector(".message-photo");
           img.src = this.photo;
           img.show();
         }
