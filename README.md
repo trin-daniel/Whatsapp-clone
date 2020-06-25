@@ -17,8 +17,8 @@ Projeto desenvolvido durante o curso de javascript na udemy, ministrado pela equ
 
 Envio de mensagens
 
-Gravacao de audio e video.
+Gravação de áudio e vídeo.
 
-Tirar fotografias
+Tirar fotografias.
 
 Possibilidade de eviar arquivos, exemplos: pdf, audio e outros.
