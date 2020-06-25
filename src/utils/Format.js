@@ -26,7 +26,6 @@ class Format {
   }
 
   static FormatHours(timeStamp){
-    console.log(timeStamp)
     return (timeStamp && typeof timeStamp.toDate ===  'function') 
     ? Format.dateToTime(timeStamp.toDate())
     : '';

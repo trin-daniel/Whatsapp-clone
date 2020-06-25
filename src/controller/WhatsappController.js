@@ -4,7 +4,9 @@ import User from '../model/User';
 import Base64 from '../utils/Base64';
 import Firebase from '../utils/Firebase';
 import Format from '../utils/Format';
+import Upload from '../utils/Upload';
 import CameraController from './CameraController';
+import ContactsController from './ContactsController';
 import DocumentPreviewController from './DocumentPreviewController';
 import MicrophoneController from './MicrophoneController';
 
@@ -13,7 +15,6 @@ class WhatsappController {
     this._firebase = new Firebase();
     this.AuthenticateFirebase();
     this.PrototypeElements();
-    // Antes chamado de loadElements;
     this.loadHTMLElements();
     this.initializeEvents();
   }
@@ -165,40 +166,67 @@ class WhatsappController {
           this.element.panelMessagesContainer.offsetHeight;
         let autoScroll = scrollTop >= scrollTopMax;      
 
-        docs.forEach(doc =>{
+        docs.forEach((doc) => {
+          let data = doc.data();
+          data.id = doc.id;
 
-        let data = doc.data();
-        data.id = doc.id;
-      
-        let message = new Message();
-        message.fromJSON(data);
+          let message = new Message();
+          message.fromJSON(data);
 
-        let isMe =  data.from === this._user.email;
-        let view = message.getviewElement(isMe);
-        if(!this.element.panelMessagesContainer.querySelector('#_' + data.id)){
-
-          if(!isMe){
-            doc.ref.set({
-              status: 'read'
-            }, {merge: true})
+          let isMe = data.from === this._user.email;
+          let view = message.getviewElement(isMe);
+          if (
+            !this.element.panelMessagesContainer.querySelector("#_" + data.id)
+          ) {
+            if (!isMe) {
+              doc.ref.set(
+                {
+                  status: "read",
+                },
+                { merge: true }
+              );
+            }
+            this.element.panelMessagesContainer.appendChild(view);
+          } else {
+            let parent = this.element.panelMessagesContainer.querySelector(
+              "#_" + data.id
+            ).parentNode;
+            parent.replaceChild(
+              view,
+              this.element.panelMessagesContainer.querySelector("#_" + data.id)
+            );
           }
-          this.element.panelMessagesContainer.appendChild(view);
-        }else{
-          this.element.panelMessagesContainer.querySelector('#_' + data.id).innerHTML = view.innerHTML;
-        } 
-        
-        if (
-          this.element.panelMessagesContainer.querySelector("#_" + data.id) &&
-          isMe
-        ) {
-          let messageEl = this.element.panelMessagesContainer.querySelector(
-            "#_" + data.id
-          );
-          messageEl.querySelector(
-            ".message-status"
-          ).innerHTML = message.getStatusViewElement().outerHTML;
-        }
-      })
+
+          if (
+            this.element.panelMessagesContainer.querySelector("#_" + data.id) &&
+            isMe
+          ) {
+            let messageEl = this.element.panelMessagesContainer.querySelector(
+              "#_" + data.id
+            );
+            messageEl.querySelector(
+              ".message-status"
+            ).innerHTML = message.getStatusViewElement().outerHTML;
+          }
+
+          if (message.type === "contact") {
+            view.querySelector(".btn-message-send").on("click", () => {
+              Chat.createIfNotExist(
+                this._user.email,
+                message.content.email
+              ).then((chat) => {
+                let contact = new User(message.content.email);
+                contact.on("datachange", () => {
+                  contact.chatId = chat.id;
+                  this._user.addContact(contact)
+                  this._user.chatId = chat.id;
+                  contact.addContact(this._user);
+                  this.setActiveChat(contact)
+                });
+              });
+            });
+          }
+        });
         if(autoScroll){
           this.element.panelMessagesContainer.scrollTop = 
           this.element.panelMessagesContainer.scrollHeight - this.element.panelMessagesContainer.offsetHeight;
@@ -244,6 +272,19 @@ class WhatsappController {
 
     this.element.photoContainerEditProfile.on('click', (event) => {
       this.element.inputProfilePhoto.click();
+    });
+
+    this.element.inputProfilePhoto.on('change', event=>{
+      if(this.element.inputProfilePhoto.files.length > 0 ){
+        const file = this.element.inputProfilePhoto.files[0];
+        Upload.send(file, this._user.email).then(snapshot =>{
+          console.log(snapshot)
+          this._user.photo = snapshot
+          this._user.save().then(()=>{
+            this.element.btnClosePanelEditProfile.click();
+          })
+        })
+      }
     });
 
     this.element.inputNamePanelEditProfile.on('keypress', (event) => {
@@ -481,11 +522,15 @@ class WhatsappController {
     });
 
     this.element.btnAttachContact.on('click', (event) => {
-      this.element.modalContacts.show();
+      this._contactsController = new ContactsController(this.element.modalContacts, this._user);
+      this._contactsController.on('select', contact=>{
+        Message.sendContact(this._contactActive.chatId, this._user.email, contact);  
+      })
+      this._contactsController.open();
     });
 
     this.element.btnCloseModalContacts.on('click', (event) => {
-      this.element.modalContacts.hide();
+      this._contactsController.close();
     });
     
     this.element.btnSendMicrophone.on('click', (event) => {
@@ -507,6 +552,9 @@ class WhatsappController {
     });
 
     this.element.btnFinishMicrophone.on('click', (event) => {
+      this._microphoneController.on('recorded', (file, metadata)=>{
+        Message.sendAudio(this._contactActive.chatId, this._user.email, file, metadata, this._user.photo);
+      })
       this._microphoneController.stopRecord();
       this.closeRecordMicrophone();
     });
@@ -547,7 +595,7 @@ class WhatsappController {
     });
 
     this.element.panelEmojis.querySelectorAll('.emojik').forEach((emoji) => {
-      emoji.on('click', (event) => {
+      emoji.on('click', () => {
         let images = this.element.imgEmojiDefault.cloneNode();
         images.style.cssText = emoji.style.cssText;
         images.dataset.unicode = emoji.dataset.unicode;

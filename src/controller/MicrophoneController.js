@@ -37,15 +37,23 @@ class MicrophoneController extends ClassEvent {
         }
       });
 
-      this._mediaRecorder.addEventListener('stop', event=>{
-        let blob = new Blob(this._recordedChunks, {
+      this._mediaRecorder.addEventListener("stop", (event) => {
+        const blob = new Blob(this._recordedChunks, {
           type: this._mimeType,
         });
-        let filename = `rec${Date.now()}.webm`;
-        let file = new File([blob], filename, {
-          type: this._mimeType,
-          lastModified: Date.now()
-        });
+        const filename = `rec${Date.now()}.webm`;
+        const audioContext = new AudioContext();
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          audioContext.decodeAudioData(reader.result).then((decode) => {
+            const file = new File([blob], filename, {
+              type: this._mimeType,
+              lastModified: Date.now(),
+            });
+            this.trigger('recorded', file, decode)
+          });
+        };
+        reader.readAsArrayBuffer(blob);
       });
       this._mediaRecorder.start();
       this.startTimer();
